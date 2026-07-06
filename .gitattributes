@@ -1,0 +1,15 @@
+# Normalize all text files to LF in the repository, on every OS.
+# This kills the "LF will be replaced by CRLF" warnings and prevents
+# phantom whole-file diffs between Windows, macOS, and Linux CI.
+* text=auto eol=lf
+
+# Treat these as binary — never touch their bytes / line endings.
+*.pdf  binary
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.ico  binary
+*.woff  binary
+*.woff2 binary
+*.lock text eol=lf
