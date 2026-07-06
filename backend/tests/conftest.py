@@ -9,7 +9,7 @@ Testing philosophy: NO MOCKS for external systems.
 from __future__ import annotations
 
 import os
-from collections.abc import AsyncIterator, Iterator
+from collections.abc import AsyncIterator, Callable, Iterator
 from pathlib import Path
 
 import pytest
@@ -55,9 +55,14 @@ async def db(mongo_uri: str) -> AsyncIterator:
     await db_module.connect()
     database = db_module.get_db()
 
-    # Clean slate before the test.
+    # Clean slate before the test, then create the same indexes as production
+    # (dropping collections also drops their indexes, so recreate them here).
     for name in await database.list_collection_names():
         await database.drop_collection(name)
+
+    from app.core.indexes import ensure_indexes
+
+    await ensure_indexes(database)
 
     yield database
 
@@ -86,7 +91,7 @@ def vcr_config() -> dict:
 # Fixture path helpers
 # --------------------------------------------------------------------------- #
 @pytest.fixture
-def html_fixture() -> "callable[[str], str]":
+def html_fixture() -> Callable[[str], str]:
     """Return a loader that reads a real HTML fixture by filename."""
 
     def _load(name: str) -> str:
@@ -96,7 +101,7 @@ def html_fixture() -> "callable[[str], str]":
 
 
 @pytest.fixture
-def pdf_fixture() -> "callable[[str], bytes]":
+def pdf_fixture() -> Callable[[str], bytes]:
     """Return a loader that reads a real PDF fixture by filename (as bytes)."""
 
     def _load(name: str) -> bytes:

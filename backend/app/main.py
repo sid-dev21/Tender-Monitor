@@ -10,6 +10,7 @@ from fastapi import FastAPI
 from app.api import health
 from app.core import db
 from app.core.config import get_settings
+from app.core.indexes import ensure_indexes
 from app.core.logging import configure_logging, logger
 
 
@@ -18,6 +19,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Open resources on startup, release them on shutdown."""
     configure_logging()
     await db.connect()
+    await ensure_indexes(db.get_db())
     logger.info("Tender Monitor started (env={})", get_settings().env)
     try:
         yield
