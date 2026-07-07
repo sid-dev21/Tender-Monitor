@@ -1,0 +1,42 @@
+# Local development infrastructure for Tender Monitor.
+#
+# This starts the STATEFUL services only (MongoDB now, MailHog for email later).
+# Your backend and frontend run locally as hot-reloading dev servers — they are
+# NOT in here on purpose, so code changes reload instantly.
+#
+# Usage (from the repo root):
+#   docker compose up -d        # start Mongo + MailHog in the background
+#   docker compose ps           # see what's running
+#   docker compose logs -f mongo
+#   docker compose down         # stop them (keeps data)
+#   docker compose down -v      # stop AND wipe the Mongo data volume
+
+services:
+  mongo:
+    image: mongo:7
+    container_name: tm-mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # Catches outgoing emails in dev so you can view them at http://localhost:8025
+  # instead of sending real mail. Used from Phase 9 (notifications) onward.
+  mailhog:
+    image: mailhog/mailhog
+    container_name: tm-mailhog
+    ports:
+      - "1025:1025"   # SMTP endpoint the backend sends to
+      - "8025:8025"   # web UI to read caught emails
+    logging:
+      driver: "none"  # MailHog logs a line per poll — silence it
+    restart: unless-stopped
+
+volumes:
+  mongo_data:
