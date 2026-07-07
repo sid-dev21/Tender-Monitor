@@ -23,6 +23,9 @@ class Settings(BaseSettings):
     env: Literal["dev", "test", "prod"] = "dev"
     log_level: str = "INFO"
 
+    # --- CORS (browser origins allowed to call the API) ---
+    cors_origins: list[str] = ["http://localhost:5173", "http://127.0.0.1:5173"]
+
     # --- MongoDB ---
     mongo_uri: str = "mongodb://localhost:27017"
     mongo_db: str = "tender_monitor"

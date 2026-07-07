@@ -1,0 +1,9 @@
+@import "tailwindcss";
+
+/* Global base tweaks live here; component styling uses Tailwind utility classes.
+   Your Stitch exports (Tailwind classes) drop straight into the components. */
+html,
+body,
+#root {
+  height: 100%;
+}

@@ -6,6 +6,7 @@ from contextlib import asynccontextmanager
 from collections.abc import AsyncIterator
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from app.api import health
 from app.core import db
@@ -37,6 +38,13 @@ def create_app() -> FastAPI:
         description="Config-driven web scraping SaaS for Burkina Faso public tenders (BTP).",
         lifespan=lifespan,
         debug=not settings.is_prod,
+    )
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=settings.cors_origins,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
     )
     app.include_router(health.router)
     return app
