@@ -1,0 +1,10 @@
+Tender Monitor
+
+Bonjour,
+
+{{ count }} nouvel(le)(s) appel(s) d'offres correspondent a vos mots-cles :
+
+{% for t in tenders %}- {{ t.title }} | Ref: {{ t.reference_number }} | Date limite: {{ t.deadline_str }} | Montant: {{ t.budget_str }}
+{% endfor %}
+
+Vous recevez cet e-mail car vous etes abonne aux alertes Tender Monitor.

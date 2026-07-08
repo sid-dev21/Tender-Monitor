@@ -5,7 +5,7 @@ from __future__ import annotations
 from app.models.enums import ScrapeTier
 from app.repositories.rate_limit_repo import RateLimitStateRepo
 from app.scrapers.fetch.router import TierRouter, domain_of
-from tests.scrapers.conftest import LocalServer
+from tests.conftest import LocalServer
 
 PADDED_PAGE = "<html><body>" + "<p>Appel d'offres BTP</p>" * 40 + "</body></html>"
 

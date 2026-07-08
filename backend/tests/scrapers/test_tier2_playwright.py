@@ -9,7 +9,7 @@ from __future__ import annotations
 from app.models.enums import ScrapeTier
 from app.scrapers.fetch.tier1_httpx import fetch_tier1
 from app.scrapers.fetch.tier2_playwright import fetch_tier2
-from tests.scrapers.conftest import LocalServer
+from tests.conftest import LocalServer
 
 # The reference is ASSEMBLED at runtime, so the literal "AON-2025-777" exists only
 # in the rendered DOM - never in the page source. That makes the Tier 1 vs Tier 2

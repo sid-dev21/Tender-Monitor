@@ -8,7 +8,15 @@ from collections.abc import AsyncIterator
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import health
+from app.api import (
+    auth,
+    health,
+    notification_schedule,
+    notifications,
+    sites,
+    tenders,
+    users,
+)
 from app.core import db
 from app.core.config import get_settings
 from app.core.indexes import ensure_indexes
@@ -47,6 +55,12 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
     app.include_router(health.router)
+    app.include_router(auth.router)
+    app.include_router(users.router)
+    app.include_router(sites.router)
+    app.include_router(tenders.router)
+    app.include_router(notifications.router)
+    app.include_router(notification_schedule.router)
     return app
 
 

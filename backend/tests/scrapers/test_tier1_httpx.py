@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from app.models.enums import ScrapeTier
 from app.scrapers.fetch.tier1_httpx import fetch_tier1
-from tests.scrapers.conftest import LocalServer
+from tests.conftest import LocalServer
 
 
 async def test_tier1_fetches_ok(http_server: LocalServer) -> None:
