@@ -6,7 +6,7 @@ repos:
       - id: trailing-whitespace
       - id: check-yaml
       - id: check-added-large-files
-        args: ["--maxkb=2000"]  # allow PDF/HTML fixtures up to 2MB
+        args: ["--maxkb=6000"]  # allow real tender PDF fixtures (ARCOP scans ~2.6MB)
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.15.20

@@ -36,3 +36,22 @@ class NotificationFrequency(StrEnum):
 
     DAILY = "daily"
     WEEKLY = "weekly"
+
+
+class Language(StrEnum):
+    """Language of a source's documents — selects the field-parser pattern set."""
+
+    FRENCH = "fr"
+    GERMAN = "de"
+    ENGLISH = "en"
+
+    @classmethod
+    def from_locale(cls, locale: str | None) -> "Language":
+        """Map a locale like 'de-DE' / 'fr-FR' / 'en-GB' to a Language (default FR)."""
+        if not locale:
+            return cls.FRENCH
+        prefix = locale.split("-")[0].lower()
+        try:
+            return cls(prefix)
+        except ValueError:
+            return cls.FRENCH
