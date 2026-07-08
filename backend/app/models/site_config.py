@@ -69,6 +69,12 @@ class SiteConfig(MongoModel):
     is_active: bool = True
     created_by_user_id: PyObjectId
 
+    # Per-site scraper "disguise" for anti-detection. Null => use the global default
+    # (settings.scrape_locale / scrape_timezone). A German source sets e.g.
+    # locale="de-DE", timezone="Europe/Berlin"; a Burkinabè one "fr-FR" / "Africa/Ouagadougou".
+    locale: str | None = None
+    timezone: str | None = None
+
     # NOTE: selectors are intentionally NOT required here. The minimal way to add a
     # site is name + base_url + content_type (content_type itself is auto-detected
     # at the API layer). The engines apply smart fallbacks when rules are empty:
