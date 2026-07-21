@@ -46,9 +46,10 @@ def test_extract_multiple_tender_blocks() -> None:
     assert tenders[1].deadline == datetime(2026, 5, 5, tzinfo=UTC)
 
 
-def test_no_list_selector_treats_page_as_one_block() -> None:
+def test_no_list_selector_auto_detects_blocks() -> None:
     rules = ExtractionRules()  # no selectors at all
     tenders = extract(PAGE, rules, Language.FRENCH)
-    # Whole page becomes one candidate; regex still finds the first reference.
-    assert len(tenders) == 1
+    # Auto-detection finds the two <article> tender blocks without any config.
+    assert len(tenders) == 2
     assert tenders[0].reference_number == "2025-101/MENA"
+    assert tenders[1].reference_number == "2025-102/MI"

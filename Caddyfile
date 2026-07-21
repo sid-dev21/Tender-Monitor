@@ -1,0 +1,14 @@
+# Caddy reverse proxy — automatic HTTPS (Let's Encrypt) for both the API and
+# the MailHog inbox, keyed off a single DOMAIN env var (see docker-compose.prod.yml).
+#
+# With no domain name owned, DOMAIN is set to a sslip.io hostname
+# (e.g. 65-21-12-34.sslip.io), which publicly resolves to the VPS's own IP —
+# real DNS, so Let's Encrypt issues a real certificate. No DNS setup needed.
+
+{$DOMAIN} {
+	reverse_proxy backend:8000
+}
+
+mail.{$DOMAIN} {
+	reverse_proxy mailhog:8025
+}

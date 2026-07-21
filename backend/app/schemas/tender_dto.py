@@ -27,9 +27,27 @@ class TenderResponse(BaseModel):
     source_site_id: str
     matched_keywords: list[str]
     created_at: datetime
+    # Populated only by POST /api/tenders/score (on-demand LLM analysis). Absent
+    # (null) on every other tenders endpoint — no analysis happens implicitly.
+    #
+    # `relevance_label` is what the model actually produced and what the UI
+    # shows: "correspond" | "connexe" | "hors_metier" | "indisponible".
+    # `relevance_score` is derived from the label purely to sort the list; it is
+    # NOT a measurement and is deliberately not displayed as a percentage.
+    relevance_label: str | None = None
+    relevance_score: int | None = None
+    relevance_reason: str | None = None
 
     @classmethod
-    def from_tender(cls, t: Tender, matched: list[str] | None = None) -> "TenderResponse":
+    def from_tender(
+        cls,
+        t: Tender,
+        matched: list[str] | None = None,
+        *,
+        relevance_label: str | None = None,
+        relevance_score: int | None = None,
+        relevance_reason: str | None = None,
+    ) -> "TenderResponse":
         return cls(
             id=str(t.id),
             title=t.title,
@@ -44,4 +62,7 @@ class TenderResponse(BaseModel):
             source_site_id=str(t.source_site_id),
             matched_keywords=matched or [],
             created_at=t.created_at,
+            relevance_label=relevance_label,
+            relevance_score=relevance_score,
+            relevance_reason=relevance_reason,
         )

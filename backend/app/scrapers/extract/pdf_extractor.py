@@ -51,16 +51,25 @@ def extract(pdf_bytes: bytes, language: Language = Language.FRENCH) -> TenderCan
     """Extract a TenderCandidate from PDF bytes. Flags scans instead of failing."""
     text_parts: list[str] = []
     image_count = 0
+    page_count = 0
     with pdfplumber.open(io.BytesIO(pdf_bytes)) as doc:
+        page_count = len(doc.pages)
         for page in doc.pages:
             page_text = page.extract_text() or ""
             text_parts.append(page_text)
             image_count += len(page.images)
     full_text = "\n".join(text_parts).strip()
 
-    # Scanned image PDF: little/no text but images present -> defer to AI extractor.
-    if len(full_text) < _SCANNED_TEXT_THRESHOLD and image_count > 0:
-        logger.info("PDF looks scanned (chars={}, images={})", len(full_text), image_count)
+    # No extractable text => nothing a regex parser can do. This covers scanned
+    # image PDFs AND malformed/0-page documents. Either way it needs the vision
+    # extractor (AI roadmap), so flag it rather than emit an empty tender.
+    if len(full_text) < _SCANNED_TEXT_THRESHOLD:
+        logger.info(
+            "PDF has no extractable text (chars={}, images={}, pages={})",
+            len(full_text),
+            image_count,
+            page_count,
+        )
         return TenderCandidate(is_scanned=True, raw_text=full_text or None)
 
     return parse_fields(full_text, language)

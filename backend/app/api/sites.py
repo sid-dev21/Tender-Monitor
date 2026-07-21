@@ -10,15 +10,20 @@ from app.dependencies.deps import get_current_user, get_db
 from app.models.site_config import SiteConfig
 from app.models.user import User
 from app.repositories.site_config_repo import SiteConfigRepo
+from app.repositories.rate_limit_repo import RateLimitStateRepo
 from app.schemas.site_dto import (
+    ScrapeRunResponse,
     SiteCreateRequest,
     SiteResponse,
     SiteTestResponse,
     SiteUpdateRequest,
+    SuggestedLink,
     TenderPreview,
 )
+from app.scrapers.fetch.router import TierRouter
 from app.scrapers.orchestrator import run_scrape
 from app.services.content_type_detector import detect_content_type
+from app.services.link_discovery import discover_tender_links
 
 router = APIRouter(prefix="/api/sites", tags=["sites"])
 
@@ -103,7 +108,7 @@ async def test_site(
     db: AsyncDatabase = Depends(get_db),
 ) -> SiteTestResponse:
     """Dry-run scrape: preview extracted tenders WITHOUT saving them."""
-    await _owned_site(site_id, current, db)
+    site = await _owned_site(site_id, current, db)
     result = await run_scrape(site_id, db, dry_run=True)
     previews = [
         TenderPreview(
@@ -116,4 +121,27 @@ async def test_site(
         )
         for t in result.tenders
     ]
-    return SiteTestResponse(count=len(previews), tenders=previews)
+
+    # Nothing found? The URL is probably not the listing page — suggest sub-pages.
+    suggestions: list[SuggestedLink] = []
+    if not previews:
+        fetched = await TierRouter(RateLimitStateRepo(db)).fetch(site.base_url, site=site)
+        if fetched.html:
+            suggestions = [
+                SuggestedLink(**link)
+                for link in discover_tender_links(fetched.html, site.base_url)
+            ]
+
+    return SiteTestResponse(count=len(previews), tenders=previews, suggested_links=suggestions)
+
+
+@router.post("/{site_id}/scrape", response_model=ScrapeRunResponse)
+async def scrape_site(
+    site_id: str,
+    current: User = Depends(get_current_user),
+    db: AsyncDatabase = Depends(get_db),
+) -> ScrapeRunResponse:
+    """Run a real scrape and PERSIST the extracted tenders (dedup by reference)."""
+    await _owned_site(site_id, current, db)
+    result = await run_scrape(site_id, db, dry_run=False)
+    return ScrapeRunResponse(tenders_found=len(result.tenders), errors=result.run.errors)

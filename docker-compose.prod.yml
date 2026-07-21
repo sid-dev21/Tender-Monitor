@@ -1,0 +1,74 @@
+# Production stack — everything self-hosted on one VPS (Mongo + MailHog + Ollama
+# + backend API), fronted by Caddy for automatic HTTPS. The frontend is NOT
+# here: it stays on Vercel and is pointed at this stack's public URL via
+# VITE_API_URL.
+#
+# Usage (on the VPS, from the repo root):
+#   cp backend/.env.prod.example backend/.env.prod   # fill in real values
+#   DOMAIN=<your-ip-with-dashes>.sslip.io docker compose -f docker-compose.prod.yml up -d --build
+#   docker compose -f docker-compose.prod.yml exec ollama ollama pull qwen2.5:1.5b-instruct
+#
+# See docs/DEPLOY.md for the full step-by-step.
+
+services:
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    volumes:
+      - mongo_data:/data/db
+
+  # Real SMTP is out of scope for tonight (needs domain SPF/DKIM setup) — MailHog
+  # catches outgoing mail and its web UI is exposed publicly (mail.$DOMAIN) so
+  # examiners can see delivered report emails without any extra setup. Swapping
+  # in a real relay later is a one-line env change (SMTP_HOST/PORT/USERNAME/PASSWORD).
+  mailhog:
+    image: mailhog/mailhog:latest
+    restart: unless-stopped
+    logging:
+      driver: "none"
+
+  ollama:
+    image: ollama/ollama:latest
+    restart: unless-stopped
+    volumes:
+      - ollama_data:/root/.ollama
+
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    depends_on:
+      - mongo
+      - mailhog
+      - ollama
+    env_file:
+      - ./backend/.env.prod
+    environment:
+      # Service-to-service addressing inside the compose network — these
+      # override anything set in .env.prod for these specific keys, since the
+      # containers must reach each other by service name, not localhost.
+      MONGO_URI: mongodb://mongo:27017
+      SMTP_HOST: mailhog
+      SMTP_PORT: "1025"
+      OLLAMA_HOST: http://ollama:11434
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN:?set DOMAIN, e.g. 65-21-12-34.sslip.io}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - backend
+      - mailhog
+
+volumes:
+  mongo_data:
+  ollama_data:
+  caddy_data:
+  caddy_config:

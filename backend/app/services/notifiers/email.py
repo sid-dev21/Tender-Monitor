@@ -70,3 +70,50 @@ async def send_tender_report(recipients: list[str], tenders: list[Tender]) -> No
 
     await aiosmtplib.send(message, **kwargs)
     logger.info("Sent tender report to {} recipient(s)", len(recipients))
+
+
+def _smtp_kwargs() -> dict:
+    settings = get_settings()
+    kwargs: dict = {
+        "hostname": settings.smtp_host,
+        "port": settings.smtp_port,
+        "use_tls": settings.smtp_port == 465,
+        "start_tls": settings.smtp_use_tls and settings.smtp_port != 465,
+    }
+    if settings.smtp_username:
+        kwargs["username"] = settings.smtp_username
+        kwargs["password"] = settings.smtp_password
+    return kwargs
+
+
+async def send_password_reset(recipient: str, reset_url: str) -> None:
+    """Send a password-reset link. Raises on SMTP failure (caller decides policy)."""
+    settings = get_settings()
+    text = (
+        "Vous avez demandé la réinitialisation de votre mot de passe Tender Monitor.\n\n"
+        f"Ouvrez ce lien pour choisir un nouveau mot de passe :\n{reset_url}\n\n"
+        f"Ce lien expire dans {settings.reset_token_expire_minutes} minutes. "
+        "Si vous n'êtes pas à l'origine de cette demande, ignorez cet email."
+    )
+    html = (
+        '<div style="font-family:system-ui,Arial,sans-serif;color:#1a1a2e">'
+        "<h2>Réinitialisation du mot de passe</h2>"
+        "<p>Vous avez demandé la réinitialisation de votre mot de passe "
+        "Tender Monitor.</p>"
+        f'<p><a href="{reset_url}" style="display:inline-block;background:#c9982a;'
+        'color:#fff;padding:12px 20px;border-radius:8px;text-decoration:none">'
+        "Choisir un nouveau mot de passe</a></p>"
+        f"<p style=\"color:#666;font-size:13px\">Ce lien expire dans "
+        f"{settings.reset_token_expire_minutes} minutes. Si vous n'êtes pas à "
+        "l'origine de cette demande, ignorez cet email.</p></div>"
+    )
+
+    message = EmailMessage()
+    message["From"] = settings.smtp_from_email
+    message["To"] = recipient
+    message["Subject"] = "Tender Monitor - Réinitialisation du mot de passe"
+    message.set_content(text)
+    message.add_alternative(html, subtype="html")
+
+    await aiosmtplib.send(message, **_smtp_kwargs())
+    logger.info("Sent password-reset email to {}", recipient)

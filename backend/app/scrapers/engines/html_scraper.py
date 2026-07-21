@@ -26,7 +26,9 @@ class HTMLScraper(BaseScraperEngine):
             errors.append(f"fetch_failed_status_{result.status_code}")
         else:
             language = Language.from_locale(site.locale)
-            candidates = html_extractor.extract(result.html, site.extraction_rules, language)
+            candidates = html_extractor.extract(
+                result.html, site.extraction_rules, language, base_url=result.final_url
+            )
             for candidate in candidates:
                 tender = self._to_tender(candidate, site, tier)
                 if tender is not None:

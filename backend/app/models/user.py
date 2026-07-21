@@ -18,6 +18,11 @@ class User(MongoModel):
     email: EmailStr
     hashed_password: str
 
+    # Free-text company profile (sector, kind of projects sought, size...). Used as
+    # context for LLM relevance scoring (services/relevance_scorer.py) on top of the
+    # keyword filter — the semantic layer keyword matching alone cannot provide.
+    company_profile: str | None = Field(default=None, max_length=2000)
+
     # Keywords the user monitors. Normalized (lowercase, accent-stripped) before
     # storage by the keyword service in Phase 8. Capped for sanity.
     keywords: list[str] = Field(default_factory=list, max_length=50)

@@ -80,7 +80,12 @@ _REFERENCE_PATTERNS = {
         r"\s*(?:no\.?|number|ref\.?)?\s*[:\-]?\s*([A-Za-z0-9][\w\-/\.]{2,})",
     ],
 }
-_GENERIC_REFERENCE = r"n[°ºo]\s*[:\-]?\s*([A-Za-z0-9][\w\-/\.]{2,})"
+# Require a real reference marker: "N°", "No.", "Nr." — NOT a bare "no", which
+# matches inside ordinary words ("dénonciations", "notification").
+_GENERIC_REFERENCE = r"\bn(?:[°º]|o\.|r\.)\s*[:\-]?\s*([A-Za-z0-9][\w\-/\.]{2,})"
+
+# Amounts below this are noise (page numbers, counts), never a tender budget.
+_MIN_PLAUSIBLE_BUDGET = 1000.0
 
 # Currency token -> ISO code.
 _CURRENCY_PATTERNS: list[tuple[str, str]] = [
@@ -147,18 +152,29 @@ def _find_budget(text: str) -> tuple[float | None, str | None]:
             m = re.search(rf"(?:{pattern})\s*([\d][\d ., ]*\d)", lower)
         if m:
             amount = _parse_amount(m.group(1))
-            if amount is not None:
+            if amount is not None and amount >= _MIN_PLAUSIBLE_BUDGET:
                 return amount, iso
     return None, None
+
+
+def _is_date_like(token: str) -> bool:
+    """A reference must not actually be a date (e.g. '14/05/2026')."""
+    return bool(_NUMERIC_DATE.fullmatch(token) or _ISO_DATE.fullmatch(token))
 
 
 def _find_reference(text: str, language: Language) -> str | None:
     for pattern in _REFERENCE_PATTERNS[language]:
         m = re.search(pattern, text, re.IGNORECASE)
         if m:
-            return m.group(1).rstrip(".")
+            token = m.group(1).rstrip(".")
+            if not _is_date_like(token):
+                return token
     m = re.search(_GENERIC_REFERENCE, text, re.IGNORECASE)
-    return m.group(1).rstrip(".") if m else None
+    if m:
+        token = m.group(1).rstrip(".")
+        if not _is_date_like(token):
+            return token
+    return None
 
 
 def _find_labeled(text: str, labels: list[str]) -> str | None:

@@ -13,6 +13,7 @@ wheels/
 # Environment / secrets
 .env
 .env.local
+.env.prod
 *.pem
 
 # Testing / coverage

@@ -1,0 +1,71 @@
+# Render blueprint — free, always-reachable deployment of the API.
+#
+# Why this exists: the submitted thesis carries a fixed Vercel URL, and the
+# evaluation date is unknown, so the backend must answer on a stable address at
+# any time. Render's free tier requires no payment method and gives 750
+# instance-hours a month (enough to stay up continuously).
+#
+# What is NOT here: Ollama. The free instance has 512 MB of RAM and the model
+# needs several gigabytes. LLM relevance analysis therefore reports itself as
+# unavailable on this deployment — which contradicts nothing in the submitted
+# document, where semantic scoring by a local model is listed under Perspectives
+# (future work), not as a delivered feature. To show it running, use the local
+# stack + tunnel described in docs/DEPLOY_TUNNEL.md.
+#
+# Deploy: push this repo to GitHub, then Render → New → Blueprint → pick the repo.
+# Set the secrets marked `sync: false` in the dashboard afterwards.
+
+services:
+  - type: web
+    name: tender-monitor-api
+    runtime: docker
+    plan: free
+    region: frankfurt          # closest free region to Burkina Faso
+    rootDir: backend
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health
+    envVars:
+      - key: ENV
+        value: prod
+      - key: LOG_LEVEL
+        value: INFO
+
+      # --- Secrets: set these in the Render dashboard ---
+      # MongoDB Atlas M0 connection string (free, no card required).
+      - key: MONGO_URI
+        sync: false
+      # openssl rand -hex 32
+      - key: JWT_SECRET
+        generateValue: true
+
+      - key: MONGO_DB
+        value: tender_monitor
+
+      # --- The SPA lives on Vercel, so this is a split-origin deployment. ---
+      # Exact origin(s) of the frontend, as JSON. Must match the Vercel URL
+      # printed in the thesis, or the browser blocks every API call.
+      - key: CORS_ORIGINS
+        sync: false
+      # Same Vercel URL, no trailing slash: used to build password-reset links.
+      - key: FRONTEND_BASE_URL
+        sync: false
+
+      # --- Scraping: kept small, the free instance is 512 MB / 0.1 CPU ---
+      - key: MAX_PDFS_PER_RUN
+        value: "3"
+      - key: PLAYWRIGHT_HEADLESS
+        value: "true"
+
+      # --- Localisation ---
+      - key: SCRAPE_TIMEZONE
+        value: Africa/Ouagadougou
+      - key: SCRAPE_LOCALE
+        value: fr-FR
+
+      # --- LLM: intentionally unreachable here (no Ollama on this plan). ---
+      # score_tender() degrades to the "indisponible" verdict, which the UI
+      # displays as such instead of pretending a tender was judged irrelevant.
+      - key: OLLAMA_HOST
+        value: http://127.0.0.1:11434
+      - key: SCORE_MAX_TENDERS
+        value: "4"

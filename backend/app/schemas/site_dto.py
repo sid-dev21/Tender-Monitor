@@ -70,6 +70,21 @@ class TenderPreview(BaseModel):
     status: str
 
 
+class SuggestedLink(BaseModel):
+    """A candidate tenders sub-page suggested when a test finds nothing."""
+
+    url: str
+    label: str
+
+
 class SiteTestResponse(BaseModel):
     count: int
     tenders: list[TenderPreview]
+    suggested_links: list[SuggestedLink] = Field(default_factory=list)
+
+
+class ScrapeRunResponse(BaseModel):
+    """Result of a real (persisting) scrape run."""
+
+    tenders_found: int
+    errors: list[str] = Field(default_factory=list)

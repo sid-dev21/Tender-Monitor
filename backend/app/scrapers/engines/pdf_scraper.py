@@ -14,6 +14,8 @@ from urllib.parse import urljoin
 import httpx
 from bs4 import BeautifulSoup
 
+from app.core.config import get_settings
+from app.core.logging import logger
 from app.models.enums import ContentType, Language, ScrapeTier
 from app.models.site_config import SiteConfig
 from app.models.tender import Tender
@@ -36,6 +38,19 @@ class PDFScraper(BaseScraperEngine):
             errors.append(f"fetch_failed_status_{result.status_code}")
         else:
             pdf_urls = self._find_pdf_urls(result.html, site)
+
+            # Cap the batch: some portals link hundreds of documents.
+            max_pdfs = get_settings().max_pdfs_per_run
+            if len(pdf_urls) > max_pdfs:
+                errors.append(f"pdf_limit_reached:{len(pdf_urls)}_found_{max_pdfs}_fetched")
+                logger.warning(
+                    "Site {} links {} PDFs; fetching only the first {}.",
+                    site.base_url,
+                    len(pdf_urls),
+                    max_pdfs,
+                )
+                pdf_urls = pdf_urls[:max_pdfs]
+
             language = Language.from_locale(site.locale)
             timeout = httpx.Timeout(60.0)
             async with httpx.AsyncClient(follow_redirects=True, timeout=timeout) as client:

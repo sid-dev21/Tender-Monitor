@@ -13,7 +13,7 @@ from app.core.config import get_settings
 
 _hasher = PasswordHasher()
 
-TokenType = Literal["access", "refresh"]
+TokenType = Literal["access", "refresh", "reset"]
 
 
 # --------------------------------------------------------------------------- #
@@ -59,6 +59,13 @@ def create_refresh_token(subject: str) -> str:
     settings = get_settings()
     return _create_token(
         subject, "refresh", timedelta(days=settings.refresh_token_expire_days)
+    )
+
+
+def create_reset_token(subject: str) -> str:
+    settings = get_settings()
+    return _create_token(
+        subject, "reset", timedelta(minutes=settings.reset_token_expire_minutes)
     )
 
 
