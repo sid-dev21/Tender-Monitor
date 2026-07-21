@@ -22,7 +22,10 @@ services:
     plan: free
     region: frankfurt          # closest free region to Burkina Faso
     rootDir: backend
-    dockerfilePath: ./Dockerfile
+    # Slim variant: no Chromium. 512 MB of RAM cannot launch a browser without
+    # being OOM-killed, and the smaller image wakes far faster from sleep.
+    # See the header of that file for what this trades away.
+    dockerfilePath: ./Dockerfile.render
     healthCheckPath: /health
     envVars:
       - key: ENV

@@ -12,7 +12,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         build-essential curl ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
-COPY --from=ghcr.io/astral-sh/uv:0.5 /uv /uvx /usr/local/bin/
+# uv from PyPI rather than a pinned ghcr.io image tag: uv.lock is `revision = 3`,
+# a format only recent uv releases understand, and `uv sync --frozen` fails
+# outright on an older one. Installing the current release keeps the container
+# in step with whatever produced the lockfile locally.
+RUN pip install --no-cache-dir uv
 
 WORKDIR /app
 

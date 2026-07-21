@@ -1,0 +1,45 @@
+# Slim image for the free Render deployment — same app, no browser engine.
+#
+# Why a second Dockerfile rather than the main one:
+#
+# The free instance has 512 MB of RAM. Launching Chromium there does not just
+# run slowly, it gets the container OOM-killed — the whole service restarts and
+# the visitor sees a crash. Leaving the browser out is the better failure mode:
+# `fetch_tier2` catches "browser not found" like any other browser error and
+# returns a FetchResult carrying the message, so a scrape of a JavaScript-heavy
+# site reports a clean error instead of taking the API down with it.
+#
+# Consequences, all deliberate:
+#   - Tier 1 (plain HTTP) works: static HTML pages and PDF documents scrape fine.
+#   - Tiers 2 and 3 (headless / stealth browser) report an error per fetch.
+#   - The image drops from ~2 GB to ~400 MB, so a cold start after the free
+#     plan's 15-minute sleep is far quicker for whoever opens the link.
+#
+# The full stack, browser included, is `backend/Dockerfile` — used by
+# docker-compose.prod.yml on a real server.
+
+FROM python:3.12-slim
+
+# Build tools for the C-extension dependencies (argon2-cffi, lxml).
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        build-essential ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# uv from PyPI: uv.lock is `revision = 3`, a format older uv releases cannot
+# read, and `uv sync --frozen` fails outright on one.
+RUN pip install --no-cache-dir uv
+
+WORKDIR /app
+
+# Dependencies first, so this layer is cached unless pyproject/uv.lock change.
+COPY pyproject.toml uv.lock ./
+RUN uv sync --frozen --no-install-project
+
+COPY . .
+RUN uv sync --frozen
+
+ENV PATH="/app/.venv/bin:${PATH}" \
+    PYTHONUNBUFFERED=1
+
+# Render injects the port to listen on and health-checks it.
+CMD uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}
