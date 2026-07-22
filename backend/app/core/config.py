@@ -47,6 +47,14 @@ class Settings(BaseSettings):
         "http://127.0.0.1:5174",
     ]
 
+    # Optional regex matching additional allowed origins. Vercel mints a fresh
+    # hostname for every preview deployment
+    # (tender-monitor-<hash>-<team>.vercel.app), which can never be enumerated
+    # in cors_origins ahead of time. Keep it anchored to your own project —
+    # a loose pattern would let any site call this API from a browser.
+    # Example: ^https://tender-monitor-[a-z0-9]+-sidoines-projects-[a-z0-9]+\.vercel\.app$
+    cors_origin_regex: str | None = None
+
     # --- MongoDB ---
     mongo_uri: str = "mongodb://localhost:27017"
     mongo_db: str = "tender_monitor"
